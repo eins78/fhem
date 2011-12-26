@@ -66,7 +66,7 @@ EnOcean_Initialize($)
   $hash->{SetFn}     = "EnOcean_Set";
   $hash->{AttrList}  = "IODev do_not_notify:1,0 ignore:0,1 " .
                        "showtime:1,0 loglevel:0,1,2,3,4,5,6 model " .
-                       "subType:switch,contact,sensor,windowHandle,SR04,MD15,dimmer ".
+                       "subType:switch,contact,sensor,windowHandle,SR04,MD15,dimmer,dimmCtrl ".
                        "actualTemp";
 
   for(my $i=0; $i<@ptm200btn;$i++) {
@@ -141,6 +141,28 @@ EnOcean_Set($@)
       $hash->{READINGS}{$cmd}{VAL} = $arg;
 
     ###########################
+    } elsif($st eq "dimmCtrl") { # Tested for Eltako-Dimmer
+      if($cmd eq "teach") {
+	my $data=sprintf("A502000000%s00", $hash->{DEF});
+	Log $ll2, "dimmCtrl.Teach: " . $data;
+        IOWrite($hash, "000A0001", $data); # len:000a optlen:00 pakettype:1(radio)
+
+      } elsif($cmd eq "dimm") {
+        return "Usage: dimm percent [time 01-FF FF:slowest] [on/off]" if(@a<2);
+        my $time=0;
+        my $onoff=1;
+        my $dimVal=$a[1]; # for eltako relative (0-100) (but not compliant to EEP because DB0.2 is 0)
+        shift(@a);
+        if(defined($a[1])) { $time=$a[1]; shift(@a); }
+        if(defined($a[1])) { $onoff=($a[1] eq "off") ? 0 : 1; shift(@a); }
+        # EEP: A5/38/08 Central Command ->Typ 0x02: Dimming
+        my $data=sprintf("A502%02X%02X%02X%s00", $dimVal, $time, $onoff|0x08, $hash->{DEF});
+        IOWrite($hash, "000A0001", $data);
+        Log $ll2, "dimmCtrl.dimm: " . $data;
+      }
+      else {
+	return "Unknown argument $cmd, choose one of: teach, dimm"
+      }
     } else {                                          # Simulate a PTM
       my ($c1,$c2) = split(",", $cmd, 2);
       return "Unknown argument $cmd, choose one of " .
