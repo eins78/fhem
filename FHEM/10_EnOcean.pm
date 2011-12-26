@@ -1,5 +1,5 @@
 ##############################################
-# $Id$
+# $Id: 10_EnOcean.pm 1130 2011-12-14 07:57:59Z rudolfkoenig $
 package main;
 
 use strict;
@@ -66,7 +66,7 @@ EnOcean_Initialize($)
   $hash->{SetFn}     = "EnOcean_Set";
   $hash->{AttrList}  = "IODev do_not_notify:1,0 ignore:0,1 " .
                        "showtime:1,0 loglevel:0,1,2,3,4,5,6 model " .
-                       "subType:switch,contact,sensor,windowHandle,SR04,MD15 ".
+                       "subType:switch,contact,sensor,windowHandle,SR04,MD15,dimmer ".
                        "actualTemp";
 
   for(my $i=0; $i<@ptm200btn;$i++) {
@@ -318,6 +318,22 @@ EnOcean_Parse($$)
       push @event, "3:actuatorStatus:".(($db_2 & 0x01) ? "obstructed" : "ok");
       push @event, "3:measured-temp:". sprintf "%.1f", ($db_1*40/255);
       EnOcean_MD15Cmd($hash, $name, $db_1);
+
+    } elsif($st eq "dimmer") { # todo: create a more general solution for the central-command responses
+      # response command from (Eltako-)Actor ( Central-Command:A5/38/08 )
+      if($db_3 eq 0x01) { # switch
+	push @event, "3:state:" . (($db_0 & 0x01) ? "on": "off");
+	push @event, "3:time:" . ($db_2<<8 + $db_1);
+	push @event, "3:timeType:" . (($db_0 & 0x02) ? "delay": "duration");
+      }
+      elsif($db_3 eq 0x02) { # dimm
+	push @event, "3:state:" . (($db_0 & 0x01) ? "on": "off");
+	push @event, "3:dimmValue:$db_2";
+      }
+      elsif($db_3 eq 0x03) {} # setpoint-switch, todo
+      elsif($db_3 eq 0x04) {} # basic setpoint, todo
+      elsif($db_3 eq 0x05) {} # control-variable, todo
+      elsif($db_3 eq 0x06) {} # fan-stage, todo
       
     } else {
       push @event, "3:state:$db_3";
