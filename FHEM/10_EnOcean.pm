@@ -66,8 +66,8 @@ EnOcean_Initialize($)
   $hash->{SetFn}     = "EnOcean_Set";
   $hash->{AttrList}  = "IODev do_not_notify:1,0 ignore:0,1 " .
                        "showtime:1,0 loglevel:0,1,2,3,4,5,6 model " .
-                       "subType:switch,contact,sensor,windowHandle,SR04,MD15,dimmer,dimmCtrl ".
-                       "actualTemp";
+                       "subType:switch,contact,sensor,windowHandle,SR04,MD15,".
+                       "dimmer,dimmCtrl actualTemp";
 
   for(my $i=0; $i<@ptm200btn;$i++) {
     $ptm200btn{$ptm200btn[$i]} = "$i:30";

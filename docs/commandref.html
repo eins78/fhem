@@ -55,6 +55,7 @@
       <a href="#sleep">sleep</a> &nbsp;
       <a href="#trigger">trigger</a> &nbsp;
       <a href="#updatefhem">updatefhem</a> &nbsp;
+      <a href="#usb">usb</a> &nbsp;
       <a href="#xmllist">xmllist</a> &nbsp;
 
   </ul>
@@ -2982,13 +2983,13 @@ A line ending with \ will be concatenated with the next one, so long lines
     <li><a href="#ignore">ignore</a></li>
     <li><a href="#showtime">showtime</a></li>
     <li><a href="#loglevel">loglevel</a></li>
-    <li><a name="#model">hmClass</a>,
-        <a name="#model">model</a>,
-        <a name="#subType">subType</a><br>
+    <li><a name="hmClass">hmClass</a>,
+        <a name="model">model</a>,
+        <a name="subType">subType</a><br>
         These attributes are set automatically after a successful pairing.
         They are not supposed to be set by hand, and are necessary in order to
         correctly interpret device messages or to be able to send them.</li>
-    <li><a name="#rawToReadable">rawToReadable</a><br>
+    <li><a name="rawToReadable">rawToReadable</a><br>
         Used to convert raw KFM100 values to readable data, based on measured
         values. E.g.  fill slowly your container, while monitoring the
         values reported with <a href="#inform">inform</a>. You'll see:
@@ -3001,7 +3002,7 @@ A line ending with \ will be concatenated with the next one, so long lines
         Apply these values with: "attr KFM100 rawToReadable 10:0 50:20 79:40 270:100".
         fhem will do a linear interpolation for values between the bounderies.
         </li>
-    <li><a name="#unit">unit</a><br>
+    <li><a name="unit">unit</a><br>
         set the reported unit by the KFM100 if rawToReadable is active. E.g.<br>
         attr KFM100 unit Liter
         </li>
@@ -6469,7 +6470,7 @@ href="http://www.elv.de/output/controller.aspx?cid=74&detail=10&detail2=29870">U
       expression, so you have access e.g. to the Value functions.<br><br>
 
       If the plotmode is gnuplot-scroll or SVG, you can also use the min, max,
-      avg, cnt, sum, lastv (last value) and lastd (last date) values of the
+      avg, cnt, sum, currval (last value) and currdate (last date) values of the
       individual curves, by accessing the corresponding values from the data
       hash, see the example below:<br>
 
@@ -6979,16 +6980,36 @@ href="http://www.elv.de/output/controller.aspx?cid=74&detail=10&detail2=29870">U
 
   </ul>
   <br>
+
   <a name="createlog"></a>
   <b>createlog</b>
   <ul>
-    Use this command to manually add a FileLog and a weblink to an existing
-    device. E.g. if a HomeMatic device is created automatically by something
-    else then a pairing message, the model is unknown, so no plots will be
-    generated.  You can set the model/subtype attribute manually, and then call
-    createlog to add the corresponding logs.  </ul> <br>
+      Use this command to manually add a FileLog and a weblink to an existing
+      device. E.g. if a HomeMatic device is created automatically by something
+      else then a pairing message, the model is unknown, so no plots will be
+      generated.  You can set the model/subtype attribute manually, and then call
+      createlog to add the corresponding logs.<br><br>
+      This command is part of the autocreate module.
+  </ul>
+  <br>
 
-</ul>
+  <a name="usb"></a>
+  <b>usb</b>
+  <ul>
+      Usage:
+      <ul><code>
+        usb scan<br>
+        usb create<br>
+      </code></ul>
+      This command will scan the /dev directory for attached USB devices, and
+      will try to identify them. With the argument scan you'll get back a list
+      of fhem commands to execute, with the argument create there will be no
+      feedback, and the devices will be created instead.<br><br> This command
+      is part of the autocreate module.
+  </ul>
+</ul> <!-- End of autocreate -->
+<br>
+
 
 <a name="average"></a>
 <h3>average</h3>
@@ -8139,6 +8160,7 @@ isday</pre>
         { OldValue("wz") }<br>
         { time_str2num(OldTimestamp("wz")) }<br>
         { ReadingsVal("wz", "measured-temp", "20")+0 }<br>
+        { ReadingsTimestamp("wz", "measured-temp", 0)}<br>
         { AttrVal("wz", "room", "none") }<br>
       </ul>
 

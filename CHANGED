@@ -1,4 +1,4 @@
-- SVN
+- 2011-12-31 (5.2)
   - bugfix:  applying smallscreen attributes to firefox/opera
   - feature: CUL_TX added (thanks to Peterp)
   - feature: TCM120/TCM310 + EnOcean parser added
@@ -27,7 +27,10 @@
   - feature: FHEMWEB save button, smallscreen first screen fix
   - feature: FHEMWEB encoding is now UTF-8, alias attribute is respected
   - change:  HTTPS certs directory moved from cwd into modpath
-  - feature: shutdwown parameter restart added
+  - feature: shutdown parameter restart added
+  - feature: usb scan/create command added (part of autocreate).
+  - feature: SaveAs added to FHEMWEB Edit-Files
+  - feature: EnOcean ElTako dimmer by Marc.
 
   
 - 2011-07-08 (5.1)

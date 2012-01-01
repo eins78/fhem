@@ -154,7 +154,7 @@ FileLog_Set($@)
 # - delta-h / delta-d to get rain/h and rain/d values from continuous data.
 #
 # It will set the %data values
-#  min<x>, max<x>, avg<x>, cnt<x>, lastd<x>, lastv<x>, sum<x>
+#  min<x>, max<x>, avg<x>, cnt<x>, currdate<x>, currval<x>, sum<x>
 # for each requested column, beggining with <x> = 1
 
 sub
@@ -184,7 +184,7 @@ FileLog_Get($@)
   } else {
     my $linf = "$1/$inf" if($hash->{currentlogfile} =~ m,^(.*)/[^/]*$,o);
     if(!-f $linf) {
-      $linf = $attr{$hash->{NAME}}{archivedir} . "/" . $inf;
+      $linf = AttrValue($hash->{NAME},"archivedir",".") ."/". $inf;
       return "Error: cannot access $linf" if(!-f $linf);
     }
     $inf = $linf;
