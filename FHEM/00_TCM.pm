@@ -12,7 +12,7 @@ package main;
 #  EnOcean Serial Protocol 3 (ESP3) (for the TCM310)
 
 
-# TODO: 
+# TODO:
 # Check BSC Temp
 # Check Stick Temp
 # Check Stick WriteRadio
@@ -76,10 +76,16 @@ TCM_Define($$)
     $attr{$name}{dummy} = 1;
     return undef;
   }
-  
+
   $hash->{DeviceName} = $dev;
   $hash->{MODEL} = $model;
   my $ret = DevIo_OpenDev($hash, 0, undef);
+
+  if($hash->{STATE} eq "opened") {
+		my $answer=TCM_Get($hash, ($name, "baseid") );
+		my @fields=split(/[=,]/, $answer);
+		$hash->{BASEID}=$fields[1];
+	}
   return $ret;
 }
 
@@ -585,7 +591,7 @@ TCM_ReadAnswer($$)
     if($^O =~ m/Win/ && $hash->{USBDev}) {
       $hash->{USBDev}->read_const_time($to*1000); # set timeout (ms)
       # Read anstatt input sonst funzt read_const_time nicht.
-      $buf = $hash->{USBDev}->read(999);          
+      $buf = $hash->{USBDev}->read(999);
       return ("$name Timeout reading answer for $arg", undef)
         if(length($buf) == 0);
 
