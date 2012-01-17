@@ -10,6 +10,7 @@ sub EnOcean_Initialize($);
 sub EnOcean_Parse($$);
 sub EnOcean_Set($@);
 sub EnOcean_MD15Cmd($$$);
+sub EnOcean_GetMyDeviceId($);
 
 my %rorgname = ("F6"=>"switch",     # RPS
                 "D5"=>"contact",    # 1BS
@@ -67,7 +68,7 @@ EnOcean_Initialize($)
   $hash->{AttrList}  = "IODev do_not_notify:1,0 ignore:0,1 " .
                        "showtime:1,0 loglevel:0,1,2,3,4,5,6 model " .
                        "subType:switch,contact,sensor,windowHandle,SR04,MD15,".
-                       "dimmer,dimmCtrl actualTemp";
+                       "eltakoDimmer subId actualTemp";
 
   for(my $i=0; $i<@ptm200btn;$i++) {
     $ptm200btn{$ptm200btn[$i]} = "$i:30";
@@ -140,14 +141,15 @@ EnOcean_Set($@)
       $hash->{READINGS}{$cmd}{TIME} = $tn;
       $hash->{READINGS}{$cmd}{VAL} = $arg;
 
-   } elsif($st eq "dimmCtrl") { # Tested for Eltako-Dimmer
+   } elsif($st eq "eltakoDimmer") {
      if($cmd eq "teach") {
-      my $data=sprintf("A502000000%s00", $hash->{DEF});
-      Log $ll2, "dimmCtrl.Teach: " . $data;
+       my $idSrc=EnOcean_GetMyDeviceId($hash);
+			 my $data=sprintf("A502000000%s00", $idSrc);
+			 Log $ll2, "$st.Teach: " . $data;
        IOWrite($hash, "000A0001", $data); # len:000a optlen:00 pakettype:1(radio)
 
-     } elsif($cmd eq "dimm") {
-       return "Usage: dimm percent [time 01-FF FF:slowest] [on/off]" if(@a<2);
+     } elsif($cmd eq "dimto") {
+       return "Usage: $cmd percent [time 01-FF FF:slowest] [on/off]" if(@a<2);
        my $time=0;
        my $onoff=1;
        # for eltako relative (0-100) (but not compliant to EEP because DB0.2 is 0)
@@ -156,12 +158,14 @@ EnOcean_Set($@)
        if(defined($a[1])) { $time=$a[1]; shift(@a); }
        if(defined($a[1])) { $onoff=($a[1] eq "off") ? 0 : 1; shift(@a); }
        # EEP: A5/38/08 Central Command ->Typ 0x02: Dimming
-       my $data=sprintf("A502%02X%02X%02X%s00", $dimVal, $time, $onoff|0x08, $hash->{DEF});
+       my $idSrc=EnOcean_GetMyDeviceId($hash);
+       #my $data=sprintf("A502%02X%02X%02X%s00", $dimVal, $time, $onoff|0x08, $hash->{DEF});
+       my $data=sprintf("A502%02X%02X%02X%s00", $dimVal, $time, $onoff|0x08, $idSrc);
        IOWrite($hash, "000A0001", $data);
-       Log $ll2, "dimmCtrl.dimm: " . $data;
+       Log $ll2, "$st.$cnd: " . $data;
 
      } else {
-      return "Unknown argument $cmd, choose one of: teach, dimm"
+      return "Unknown argument $cmd, choose one of: teach, dimto"
 
      }
 
@@ -209,7 +213,7 @@ EnOcean_Parse($$)
     return "";
   }
 
-  my $hash = $modules{EnOcean}{defptr}{$id}; 
+  my $hash = $modules{EnOcean}{defptr}{$id};
   if(!$hash) {
     Log 3, "EnOcean Unknown device with ID $id, please define it";
     return "UNDEFINED EnO_${rorgname}_$id EnOcean $id";
@@ -262,14 +266,14 @@ EnOcean_Parse($$)
       } else {
         if($st eq "keycard") {
           $msg = "keycard removed";
-          
+
         } else {
           $msg = (($db_3&0x10) ? "pressed" : "released");
 
         }
 
       }
-      
+
     }
 
     # released events are disturbing when using a remote, since it overwrites
@@ -303,7 +307,7 @@ EnOcean_Parse($$)
 
         if("$fn.$tp" eq "20.01" && $iohash->{pair}) {      # MD15
           select(undef, undef, undef, 0.1);                # max 10 Seconds
-          EnOcean_A5Cmd($hash, "800800F0", "00000000");
+          EnOcean_A5Cmd($hash, "800800F0", EnOcean_GetMyDeviceId($hash));
           select(undef, undef, undef, 0.5);
           EnOcean_MD15Cmd($hash, $name, 128); # 128 == 20 degree C
         }
@@ -343,11 +347,9 @@ EnOcean_Parse($$)
       push @event, "3:actuatorStatus:".(($db_2 & 0x01) ? "obstructed" : "ok");
       push @event, "3:measured-temp:". sprintf "%.1f", ($db_1*40/255);
       EnOcean_MD15Cmd($hash, $name, $db_1);
-      
 
-    } elsif($st eq "dimmer") {
-      # todo: create a more general solution for the central-command responses
 
+    } elsif($st eq "eltakoDimmer") {
       # response command from (Eltako-)Actor ( Central-Command:A5/38/08 )
       if($db_3 eq 0x01) { # switch
         push @event, "3:state:" . (($db_0 & 0x01) ? "on": "off");
@@ -356,7 +358,7 @@ EnOcean_Parse($$)
 
       } elsif($db_3 eq 0x02) { # dimm
         push @event, "3:state:" . (($db_0 & 0x01) ? "on": "off");
-        push @event, "3:dimmValue:$db_2";
+        push @event, "3:value:$db_2";
 
       } elsif($db_3 eq 0x03) { # setpoint-switch, todo
       } elsif($db_3 eq 0x04) { # basic setpoint, todo
@@ -403,7 +405,7 @@ EnOcean_Parse($$)
     }
   }
   $hash->{CHANGED} = \@changed;
-  
+
   return $name;
 }
 
@@ -420,7 +422,7 @@ EnOcean_MD15Cmd($$$)
       $msg = sprintf("%02X000000", $arg1);
 
     } elsif($cmd eq "desired-temp") {
-      $msg = sprintf("%02X%02X0400", $arg1*255/40, 
+      $msg = sprintf("%02X%02X0400", $arg1*255/40,
                      AttrVal($name, "actualTemp", ($db_1*40/255)) * 255/40);
 
     } elsif($cmd eq "initialize") {
@@ -430,7 +432,7 @@ EnOcean_MD15Cmd($$$)
 
     if($msg) {
       select(undef, undef, undef, 0.2);
-      EnOcean_A5Cmd($hash, $msg, "00000000");
+      EnOcean_A5Cmd($hash, $msg, EnOcean_GetMyDeviceId($hash));
       if($cmd eq "initialize") {
         delete($defs{$name}{READINGS}{CMD});
         delete($defs{$name}{READINGS}{$cmd});
@@ -442,10 +444,29 @@ EnOcean_MD15Cmd($$$)
 sub
 EnOcean_A5Cmd($$$)
 {
-  my ($hash, $msg, $org) = @_; 
-  IOWrite($hash, "000A0701", # varLen=0A optLen=07 msgType=01=radio, 
+  my ($hash, $msg, $org) = @_;
+  IOWrite($hash, "000A0701", # varLen=0A optLen=07 msgType=01=radio,
           sprintf("A5%s%s0001%sFF00",$msg,$org,$hash->{DEF}));
           # type=A5 msg:4 senderId:4 status=00 subTelNum=01 destId:4 dBm=FF Security=00
 }
+
+# ---------------------------------------------
+
+#
+# compose the Src-Id for a command to send
+#
+sub EnOcean_GetMyDeviceId($)
+{
+  my ($hash) = @_;
+  my $myId=0;  # default: use Device-ID of EUL
+  my $baseId=hex($hash->{IODev}{BASEID});
+	my $subId = AttrVal($name, "subId", "");
+  if(defined $baseId and defined $subId) {
+    # if there is a base-id an a subid -> use this combination
+		$myId=sprintf("%08X", $baseId | $subId);
+  }
+  return $myId;
+}
+
 
 1;
