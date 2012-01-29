@@ -60,13 +60,10 @@ sub Weather_UpdateReading($$$$$$) {
   $r->{$reading}{VAL} = $value;
 
   my $name= $hash->{NAME};
-  Log 1, "Weather $name: $reading= $value";
+  # Log 1, "Weather $name: $reading= $value";
 
-  #if(!$hash->{LOCAL}) {
-    DoTrigger($name, ReadingsVal($name, $reading, "")); # if($init_done);
-  #}
+  $hash->{CHANGED}[$n]= "$reading: $value";
   
-
   return 1;
 }
 
@@ -107,6 +104,7 @@ sub Weather_GetUpdate($)
   foreach my $condition ( keys ( %$current ) ) {
   	my $value= $current->{$condition};
   	Weather_UpdateReading($hash,"",$condition,$tn,$value,$n);
+  	$n++;
   }
 
   my $fci= $WeatherObj->forecast_information;
@@ -114,6 +112,7 @@ sub Weather_GetUpdate($)
   	my $reading= $i;
   	my $value= $fci->{$i};
   	Weather_UpdateReading($hash,"",$i,$tn,$value,$n);
+        $n++;
   }
 
   for(my $t= 0; $t<= 3; $t++) {
@@ -122,9 +121,15 @@ sub Weather_GetUpdate($)
 	foreach my $condition ( keys ( %$fcc ) ) {
   		my $value= $fcc->{$condition};
 	  	Weather_UpdateReading($hash,$prefix,$condition,$tn,$value,$n);
+        $n++;
   	}
   }
 
+  if(!$hash->{LOCAL}) {
+    DoTrigger($name, undef) if($init_done);
+  }
+
+  
   return 1;
 }
 

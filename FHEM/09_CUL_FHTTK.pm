@@ -193,9 +193,20 @@ CUL_FHTTK_Parse($$)
          }
       }
   }
+  
+  my $prevState = $defs{$self}{PREV}{STATE};
+  if ($prevState != $state) {
+    my ($windowReading,$windowState) = split(/:/, $fhttfk_codes{$prevState});
+    $defs{$self}{READINGS}{"PreviousWindow"}{VAL} = $windowState;
+    $defs{$self}{READINGS}{"PreviousWindow"}{TIME} = $def->{PREVTIMESTAMP};
+  }
+ 
   $def->{PREVTIMESTAMP} = defined($defs{$self}{PREV}{TIMESTAMP})?$defs{$self}{PREV}{TIMESTAMP}:time();
   $def->{PREVSTATE} = defined($def->{STATE})?$def->{STATE}:"Unknown";
   $defs{$self}{PREV}{STATE}=$state;
+  
+
+  
   #READINGS
   my ($reading,$val) = split(/:/, $fhttfk_codes{$state});
   $defs{$self}{READINGS}{$reading}{VAL} = $val;

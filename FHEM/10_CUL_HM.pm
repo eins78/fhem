@@ -114,7 +114,7 @@ my %culHmModel=(
   "005C" => "HM-OU-CF-PL",
   "005F" => "HM-SCI-3-FM",
   "0060" => "HM-PB-4DIS-WM",   # Tested
-  "0061" => "HM-LC-SW4-DR",
+  "0061" => "HM-LC-SW4-DR",    # Tested by fhem-hm-knecht.
   "0062" => "HM-LC-SW2-DR",
   "0066" => "HM_LC_Sw4-WM",    # Tested by peterp
 );
@@ -1075,6 +1075,7 @@ CUL_HM_Set($@)
   }
 
   $hash->{STATE} = $state if($state);
+  Log GetLogLevel($name,2), "CUL_HM set $name " . join(" ", @a[1..$#a]);
 
   CUL_HM_ProcessCmdStack($hash) if(!$isSender);
   return "";
@@ -1458,10 +1459,16 @@ CUL_HM_encodeTime16($)
 sub
 CUL_HM_convTemp($)
 {
-  my ($in) = @_;
-  return "$in is not a number" if($in !~ m/^\d+$/ && $in !~ m/\d+\.\d+$/);
-  return "$in is out of bounds (6 .. 30)" if($in < 6 || $in > 30);
-  return sprintf("%02X", $in*2);
+  my ($val) = @_;
+
+  my @list = map { ($_.".0", $_+0.5) } (6..30);
+  pop @list;
+  return "Invalid temperature $val, choose one of on off " . join(" ",@list)
+    if(!($val eq "on" || $val eq "off" ||
+         ($val =~ m/^\d*\.?\d+$/ && $val >= 6 && $val <= 30)));
+  $val = 100 if($val eq "on");
+  $val =   0 if($val eq "off");
+  return sprintf("%02X", $val*2);
 }
 
 #############################

@@ -889,8 +889,7 @@ FW_showRoom()
           $txt = ReadingsVal($d, "measured-temp", "");
           $txt =~ s/ .*//;
           $txt = sprintf("%2.1f", int(2*$txt)/2) if($txt =~ m/[0-9.-]/);
-          my @tv = map { ($_.".0", $_+0.5) } (5..30);
-          shift(@tv);     # 5.0 is not valid
+          my @tv = split(" ", getAllSets("$d desired-temp"));
           $txt = int($txt*20)/$txt if($txt =~ m/^[0-9].$/);
 
           FW_pO "<td>".
@@ -1605,7 +1604,6 @@ FW_showWeblink($$$$)
   my ($d, $v, $t, $buttons) = @_;
 
   my $attr = AttrVal($d, "htmlattr", "");
-
   if($t eq "link") {
     FW_pO "<a href=\"$v\" $attr>$d</a>";    # no FW_pH, want to open extra browser
 
@@ -1639,7 +1637,7 @@ FW_showWeblink($$$$)
 
     my @va = split(":", $v, 3);
     if(@va != 3 || !$defs{$va[0]} || !$defs{$va[0]}{currentlogfile}) {
-      FW_pO "Broken definition: $v<br>";
+      FW_pO "Broken definition for $d: $v<br>";
 
     } else {
       if($va[2] eq "CURRENT") {
